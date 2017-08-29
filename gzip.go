@@ -44,6 +44,10 @@ func (g *gRW) init() {
 			return
 		}
 	}
+	if !supportedContentType(g.w.Header().Get("Content-Type")) {
+		g.skip = true
+		return
+	}
 	g.z = pool.Get().(*gzip.Writer)
 	g.z.Reset(g.w)
 	g.w.Header().Set("Content-Encoding", "gzip")
@@ -118,6 +122,21 @@ func allowsGzip(hdr string) bool {
 			}
 		}
 		return false
+	}
+	return false
+}
+
+func supportedContentType(s string) bool {
+	if s == "" {
+		return false
+	}
+	if strings.HasPrefix(s, "text/") {
+		return true
+	}
+	if strings.HasPrefix(s, "application/") && (strings.Contains(s, "json") ||
+		strings.Contains(s, "javascript") ||
+		strings.Contains(s, "xml")) {
+		return true
 	}
 	return false
 }
