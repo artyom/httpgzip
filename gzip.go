@@ -11,9 +11,16 @@ import (
 
 const compressThreshold = 1000
 
+const (
+	hdrAcceptEncoding  = "Accept-Encoding"
+	hdrContentEncoding = "Content-Encoding"
+	hdrContentType     = "Content-Type"
+	hdrContentLength   = "Content-Length"
+)
+
 func New(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Vary", "Accept-Encoding")
+		w.Header().Add("Vary", hdrAcceptEncoding)
 		if acceptsGzip(r) {
 			z := gzipWrap(w)
 			defer z.Close()
@@ -38,24 +45,24 @@ func (g *gRW) init() {
 	if g.skip || g.z != nil {
 		return
 	}
-	if g.w.Header().Get("Content-Encoding") != "" {
+	if g.w.Header().Get(hdrContentEncoding) != "" {
 		g.skip = true
 		return
 	}
-	if cl := g.w.Header().Get("Content-Length"); cl != "" {
+	if cl := g.w.Header().Get(hdrContentLength); cl != "" {
 		if n, err := strconv.Atoi(cl); err == nil && n < compressThreshold {
 			g.skip = true
 			return
 		}
 	}
-	if !supportedContentType(g.w.Header().Get("Content-Type")) {
+	if !supportedContentType(g.w.Header().Get(hdrContentType)) {
 		g.skip = true
 		return
 	}
 	g.z = pool.Get().(*gzip.Writer)
 	g.z.Reset(g.w)
-	g.w.Header().Set("Content-Encoding", "gzip")
-	g.w.Header().Del("Content-Length")
+	g.w.Header().Set(hdrContentEncoding, "gzip")
+	g.w.Header().Del(hdrContentLength)
 }
 
 func (g *gRW) Header() http.Header { return g.w.Header() }
@@ -73,8 +80,8 @@ func (g *gRW) Write(b []byte) (int, error) {
 	if g.skip {
 		return g.w.Write(b)
 	}
-	if g.w.Header().Get("Content-Type") == "" {
-		g.w.Header().Set("Content-Type", http.DetectContentType(b))
+	if g.w.Header().Get(hdrContentType) == "" {
+		g.w.Header().Set(hdrContentType, http.DetectContentType(b))
 	}
 	return g.z.Write(b)
 }
@@ -103,7 +110,7 @@ func (g *gRW) Close() {
 // acceptsGzip returns true if the given HTTP request indicates that it will
 // accept a gzipped response.
 func acceptsGzip(r *http.Request) bool {
-	return allowsGzip(r.Header.Get("Accept-Encoding"))
+	return allowsGzip(r.Header.Get(hdrAcceptEncoding))
 }
 
 func allowsGzip(hdr string) bool {
