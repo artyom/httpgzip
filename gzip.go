@@ -127,10 +127,9 @@ func allowsGzip(hdr string) bool {
 		p := strings.TrimSpace(parts[1])
 		if qv := strings.TrimPrefix(p, "q="); qv != p {
 			if q, err := strconv.ParseFloat(qv, 64); err == nil {
-				return q != 0
-			} else {
-				return false
+				return q > 0
 			}
+			return false
 		}
 		return false
 	}
