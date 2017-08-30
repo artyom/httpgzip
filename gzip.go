@@ -38,6 +38,10 @@ func (g *gRW) init() {
 	if g.skip || g.z != nil {
 		return
 	}
+	if g.w.Header().Get("Content-Encoding") != "" {
+		g.skip = true
+		return
+	}
 	if cl := g.w.Header().Get("Content-Length"); cl != "" {
 		if n, err := strconv.Atoi(cl); err == nil && n < compressThreshold {
 			g.skip = true
