@@ -40,6 +40,7 @@ type gRW struct {
 	w    http.ResponseWriter
 	z    *gzip.Writer
 	skip bool
+	ct   bool // whether Content-Type is already set
 }
 
 func (g *gRW) init() {
@@ -86,8 +87,11 @@ func (g *gRW) Write(b []byte) (int, error) {
 	if g.skip {
 		return g.w.Write(b)
 	}
-	if g.w.Header().Get(hdrContentType) == "" {
-		g.w.Header().Set(hdrContentType, http.DetectContentType(b))
+	if !g.ct {
+		g.ct = true
+		if g.w.Header().Get(hdrContentType) == "" {
+			g.w.Header().Set(hdrContentType, http.DetectContentType(b))
+		}
 	}
 	return g.z.Write(b)
 }
