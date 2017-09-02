@@ -16,6 +16,7 @@ const (
 	hdrContentEncoding = "Content-Encoding"
 	hdrContentType     = "Content-Type"
 	hdrContentLength   = "Content-Length"
+	hdrContentRange    = "Content-Range"
 )
 
 func New(h http.Handler) http.Handler {
@@ -45,6 +46,10 @@ func (g *gRW) init() {
 	if g.skip || g.z != nil {
 		return
 	}
+	if g.w.Header().Get(hdrContentRange) != "" {
+		g.skip = true
+		return
+	}
 	if g.w.Header().Get(hdrContentEncoding) != "" {
 		g.skip = true
 		return
@@ -67,7 +72,8 @@ func (g *gRW) init() {
 
 func (g *gRW) Header() http.Header { return g.w.Header() }
 func (g *gRW) WriteHeader(code int) {
-	if g.z == nil && code != http.StatusNoContent && code != http.StatusNotModified {
+	if g.z == nil && code != http.StatusNoContent && code != http.StatusNotModified &&
+		code != http.StatusPartialContent {
 		g.init()
 	}
 	g.w.WriteHeader(code)
