@@ -68,7 +68,7 @@ func (g *gRW) init() {
 			return
 		}
 	}
-	if !supportedContentType(g.w.Header().Get(hdrContentType)) {
+	if ct := g.w.Header().Get(hdrContentType); ct != "" && !supportedContentType(ct) {
 		g.skip = true
 		return
 	}
