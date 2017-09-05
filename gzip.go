@@ -1,4 +1,4 @@
-package gziphandler
+package httpgzip
 
 import (
 	"compress/gzip"
