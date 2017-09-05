@@ -44,10 +44,10 @@ func gzipWrap(w http.ResponseWriter) *gRW {
 }
 
 type gRW struct {
-	w    http.ResponseWriter
-	z    *gzip.Writer
-	skip bool
-	ct   bool // whether Content-Type is already set
+	w           http.ResponseWriter
+	z           *gzip.Writer
+	skip        bool
+	wroteHeader bool // whether WriteHeader was called
 }
 
 func (g *gRW) init() {
@@ -80,6 +80,7 @@ func (g *gRW) init() {
 
 func (g *gRW) Header() http.Header { return g.w.Header() }
 func (g *gRW) WriteHeader(code int) {
+	g.wroteHeader = true
 	if g.z == nil && code != http.StatusNoContent && code != http.StatusNotModified &&
 		code != http.StatusPartialContent {
 		g.init()
@@ -88,17 +89,14 @@ func (g *gRW) WriteHeader(code int) {
 }
 
 func (g *gRW) Write(b []byte) (int, error) {
-	if g.z == nil {
-		g.init()
-	}
-	if g.skip {
-		return g.w.Write(b)
-	}
-	if !g.ct {
-		g.ct = true
+	if !g.wroteHeader {
 		if g.w.Header().Get(hdrContentType) == "" {
 			g.w.Header().Set(hdrContentType, http.DetectContentType(b))
 		}
+		g.WriteHeader(http.StatusOK)
+	}
+	if g.skip || g.z == nil {
+		return g.w.Write(b)
 	}
 	return g.z.Write(b)
 }
