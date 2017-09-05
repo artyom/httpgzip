@@ -1,3 +1,8 @@
+// Package httpgzip provides a wrapper to http.Handler that does on the fly gzip
+// encoding if certain conditions are met.
+//
+// Content is compressed only if client understands it, content size is greater
+// than certain threshold and content type matches predefined list of types.
 package httpgzip
 
 import (
@@ -19,6 +24,8 @@ const (
 	hdrContentRange    = "Content-Range"
 )
 
+// New returns a http.Handler that optionally compresses response using
+// 'Content-Enconding: gzip' scheme.
 func New(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Vary", hdrAcceptEncoding)
