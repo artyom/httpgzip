@@ -24,12 +24,27 @@ const (
 	hdrContentRange    = "Content-Range"
 )
 
+// Option functions are used to configure new handler.
+type Option func(*gzipHandler)
+
+// WithLevel configures handler to use specified compression level. It will
+// panic if level is not one of the values accepted by gzip.NewWriterLevel.
+func WithLevel(level int) Option {
+	if _, err := gzip.NewWriterLevel(ioutil.Discard, level); err != nil {
+		panic(err)
+	}
+	return func(g *gzipHandler) { g.writerPool = newWriterPool(level) }
+}
+
 // New returns a http.Handler that optionally compresses response using
 // 'Content-Enconding: gzip' scheme.
-func New(h http.Handler) http.Handler {
+func New(h http.Handler, options ...Option) http.Handler {
 	g := &gzipHandler{
 		h:          h,
 		writerPool: newWriterPool(gzip.BestSpeed),
+	}
+	for _, fn := range options {
+		fn(g)
 	}
 	return g
 }
