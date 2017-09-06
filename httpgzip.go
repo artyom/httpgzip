@@ -167,5 +167,8 @@ func supportedContentType(s string) bool {
 }
 
 var pool = sync.Pool{
-	New: func() interface{} { return gzip.NewWriter(ioutil.Discard) },
+	New: func() interface{} {
+		w, _ := gzip.NewWriterLevel(ioutil.Discard, gzip.BestSpeed)
+		return w
+	},
 }
