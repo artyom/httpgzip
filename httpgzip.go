@@ -27,25 +27,33 @@ const (
 // New returns a http.Handler that optionally compresses response using
 // 'Content-Enconding: gzip' scheme.
 func New(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Vary", hdrAcceptEncoding)
-		if acceptsGzip(r) {
-			z := gzipWrap(w)
-			defer z.Close()
-			h.ServeHTTP(z, r)
-			return
-		}
-		h.ServeHTTP(w, r)
-	})
+	g := &gzipHandler{
+		h:          h,
+		writerPool: newWriterPool(gzip.BestSpeed),
+	}
+	return g
 }
 
-func gzipWrap(w http.ResponseWriter) *gRW {
-	return &gRW{w: w}
+type gzipHandler struct {
+	h          http.Handler
+	writerPool writerPool
+}
+
+func (h *gzipHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Vary", hdrAcceptEncoding)
+	if !acceptsGzip(r) {
+		h.h.ServeHTTP(w, r)
+		return
+	}
+	z := &gRW{w: w, pool: h.writerPool}
+	defer z.Close()
+	h.h.ServeHTTP(z, r)
 }
 
 type gRW struct {
 	w           http.ResponseWriter
 	z           *gzip.Writer
+	pool        writerPool
 	skip        bool
 	wroteHeader bool // whether WriteHeader was called
 }
@@ -72,7 +80,7 @@ func (g *gRW) init() {
 		g.skip = true
 		return
 	}
-	g.z = pool.Get().(*gzip.Writer)
+	g.z = g.pool.Get()
 	g.z.Reset(g.w)
 	g.w.Header().Set(hdrContentEncoding, "gzip")
 	g.w.Header().Del(hdrContentLength)
@@ -118,7 +126,7 @@ func (g *gRW) Close() {
 	if f, ok := g.w.(http.Flusher); ok {
 		f.Flush()
 	}
-	pool.Put(g.z)
+	g.pool.Put(g.z)
 	g.z = nil
 }
 
@@ -166,9 +174,28 @@ func supportedContentType(s string) bool {
 	return false
 }
 
-var pool = sync.Pool{
-	New: func() interface{} {
-		w, _ := gzip.NewWriterLevel(ioutil.Discard, gzip.BestSpeed)
-		return w
-	},
+type writerPool interface {
+	Get() *gzip.Writer
+	Put(*gzip.Writer)
 }
+
+func newWriterPool(level int) writerPool {
+	return &pool{
+		sync.Pool{
+			New: func() interface{} {
+				w, err := gzip.NewWriterLevel(ioutil.Discard, level)
+				if err != nil {
+					panic(err)
+				}
+				return w
+			},
+		},
+	}
+}
+
+type pool struct {
+	sync.Pool
+}
+
+func (p *pool) Get() *gzip.Writer  { return p.Pool.Get().(*gzip.Writer) }
+func (p *pool) Put(w *gzip.Writer) { p.Pool.Put(w) }
