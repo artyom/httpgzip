@@ -175,8 +175,11 @@ func allowsGzip(hdr string) bool {
 }
 
 func supportedContentType(s string) bool {
-	if s == "" {
+	switch s {
+	case "":
 		return false
+	case "image/svg+xml", "font/woff", "font/woff2":
+		return true
 	}
 	if strings.HasPrefix(s, "text/") {
 		return true
