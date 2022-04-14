@@ -95,16 +95,17 @@ func testFunc(h http.Handler, acceptGzip, expectGzip bool, want string) func(*te
 		}
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, r)
+		result := w.Result()
 		var data []byte
 		var err error
 		switch {
 		case expectGzip:
-			if ce := w.HeaderMap.Get("Content-Encoding"); ce != "gzip" {
+			if ce := result.Header.Get("Content-Encoding"); ce != "gzip" {
 				t.Fatalf("want Content-Encoding: gzip, got %q", ce)
 			}
 			data, err = readAllGzipped(w.Body)
 		default:
-			if ce := w.HeaderMap.Get("Content-Encoding"); ce != "" {
+			if ce := result.Header.Get("Content-Encoding"); ce != "" {
 				t.Fatalf("want empty Content-Encoding, got %q", ce)
 			}
 			data, err = ioutil.ReadAll(w.Body)
