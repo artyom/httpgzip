@@ -3,7 +3,6 @@ package httpgzip
 import (
 	"compress/gzip"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -108,7 +107,7 @@ func testFunc(h http.Handler, acceptGzip, expectGzip bool, want string) func(*te
 			if ce := result.Header.Get("Content-Encoding"); ce != "" {
 				t.Fatalf("want empty Content-Encoding, got %q", ce)
 			}
-			data, err = ioutil.ReadAll(w.Body)
+			data, err = io.ReadAll(w.Body)
 		}
 		if err != nil {
 			t.Fatal(err)
@@ -125,7 +124,7 @@ func readAllGzipped(r io.Reader) ([]byte, error) {
 		return nil, err
 	}
 	defer rd.Close()
-	return ioutil.ReadAll(rd)
+	return io.ReadAll(rd)
 }
 
 func TestAllowsGzip(t *testing.T) {
