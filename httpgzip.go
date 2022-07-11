@@ -178,7 +178,7 @@ func supportedContentType(s string) bool {
 	switch s {
 	case "":
 		return false
-	case "image/svg+xml", "font/woff", "font/woff2":
+	case "image/svg+xml":
 		return true
 	}
 	if strings.HasPrefix(s, "text/") {
