@@ -176,3 +176,25 @@ func Test_gRWUnwrap(t *testing.T) {
 	r.Header.Set(hdrAcceptEncoding, "gzip")
 	h.ServeHTTP(httptest.NewRecorder(), r)
 }
+
+func TestWithLevel(t *testing.T) {
+	t.Parallel()
+	fn := func(t *testing.T, level int, shouldPanic bool) {
+		defer func() {
+			if shouldPanic {
+				if recover() == nil {
+					t.Error("expected call to panic, but doesn't")
+				}
+			} else {
+				if e := recover(); e != nil {
+					t.Errorf("the call should not panic, but it does: %v", e)
+				}
+			}
+		}()
+		_ = WithLevel(level)
+	}
+	t.Run("bad#1", func(t *testing.T) { fn(t, gzip.HuffmanOnly-1, true) })
+	t.Run("bad#2", func(t *testing.T) { fn(t, gzip.BestCompression+1, true) })
+	t.Run("good#1", func(t *testing.T) { fn(t, gzip.HuffmanOnly, false) })
+	t.Run("good#2", func(t *testing.T) { fn(t, gzip.BestCompression, false) })
+}
