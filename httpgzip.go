@@ -51,7 +51,7 @@ func New(h http.Handler, options ...Option) http.Handler {
 
 type gzipHandler struct {
 	h          http.Handler
-	writerPool writerPool
+	writerPool *pool
 }
 
 func (h *gzipHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +68,7 @@ func (h *gzipHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type gRW struct {
 	w           http.ResponseWriter
 	z           *gzip.Writer
-	pool        writerPool
+	pool        *pool
 	skip        bool
 	wroteHeader bool // whether WriteHeader was called
 }
@@ -192,12 +192,7 @@ func supportedContentType(s string) bool {
 	return false
 }
 
-type writerPool interface {
-	Get() *gzip.Writer
-	Put(*gzip.Writer)
-}
-
-func newWriterPool(level int) writerPool {
+func newWriterPool(level int) *pool {
 	return &pool{
 		sync.Pool{
 			New: func() interface{} {
