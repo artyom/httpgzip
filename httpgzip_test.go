@@ -153,3 +153,26 @@ func TestAllowsGzip(t *testing.T) {
 		}
 	}
 }
+
+func Test_gRWUnwrap(t *testing.T) {
+	t.Parallel()
+	type rwUnwrapper interface {
+		Unwrap() http.ResponseWriter
+	}
+	content := strings.Repeat(hello, compressThreshold/len(hello)+1)
+	h := New(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if uw, ok := w.(rwUnwrapper); !ok {
+			t.Error("ResponseWriter does not implement rwUnwrapper")
+		} else {
+			parent := uw.Unwrap()
+			if _, ok := parent.(*httptest.ResponseRecorder); !ok {
+				t.Errorf("parent ResponseWriter (%T) is not a *httptest.ResponseRecorder", parent)
+			}
+		}
+		w.Header().Set("Content-Length", strconv.Itoa(len(content)))
+		w.Write([]byte(content))
+	}))
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.Header.Set(hdrAcceptEncoding, "gzip")
+	h.ServeHTTP(httptest.NewRecorder(), r)
+}

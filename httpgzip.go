@@ -145,6 +145,8 @@ func (g *gRW) Close() {
 	g.z = nil
 }
 
+func (g *gRW) Unwrap() http.ResponseWriter { return g.w }
+
 // acceptsGzip returns true if the given HTTP request indicates that it will
 // accept a gzipped response.
 func acceptsGzip(r *http.Request) bool {
