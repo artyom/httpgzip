@@ -61,7 +61,7 @@ func (h *gzipHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	z := &gRW{w: w, pool: h.writerPool}
-	defer z.Close()
+	defer z.close()
 	h.h.ServeHTTP(z, r)
 }
 
@@ -133,7 +133,7 @@ func (g *gRW) Flush() {
 	}
 }
 
-func (g *gRW) Close() {
+func (g *gRW) close() {
 	if g.z == nil {
 		return
 	}
