@@ -157,15 +157,16 @@ func allowsGzip(hdr string) bool {
 	if !strings.Contains(hdr, "gzip") {
 		return false
 	}
-	for _, ss := range strings.Split(hdr, ",") {
-		parts := strings.SplitN(ss, ";", 2)
-		if l := len(parts); l == 0 || strings.TrimSpace(parts[0]) != "gzip" {
+	for ss := range strings.SplitSeq(hdr, ",") {
+		kind, p, _ := strings.Cut(ss, ";")
+		if strings.TrimSpace(kind) != "gzip" {
 			continue
-		} else if l == 1 {
+		}
+		p = strings.TrimSpace(p)
+		if p == "" {
 			return true
 		}
-		p := strings.TrimSpace(parts[1])
-		if qv := strings.TrimPrefix(p, "q="); qv != p {
+		if qv, ok := strings.CutPrefix(p, "q="); ok {
 			if q, err := strconv.ParseFloat(qv, 64); err == nil {
 				return q > 0
 			}

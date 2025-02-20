@@ -154,6 +154,15 @@ func TestAllowsGzip(t *testing.T) {
 	}
 }
 
+func Benchmark_allowsGzip(b *testing.B) {
+	b.ReportAllocs()
+	for b.Loop() {
+		if !allowsGzip("compress;q=0.5, gzip;q=1.0") {
+			b.Fatal("unexpected result")
+		}
+	}
+}
+
 func Test_gRWUnwrap(t *testing.T) {
 	t.Parallel()
 	type rwUnwrapper interface {
